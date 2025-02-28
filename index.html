@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Engineer - بازی مهندس پل‌ساز</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #1e1e2e; color: white; font-family: Arial, sans-serif; text-align: center; }
+        canvas { display: block; margin: auto; border: 2px solid #fff; background: #87ceeb; }
+        h1 { margin: 10px; }
+        #ui { margin-top: 10px; }
+        button { padding: 10px; margin: 5px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>🎮 بازی مهندس پل‌ساز</h1>
+    <p>گره‌ها را با کلیک ایجاد کنید، با کشیدن آن‌ها را به هم وصل کنید و سپس تست کنید!</p>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui">
+        <button onclick="startTest()">🚛 تست پل</button>
+        <button onclick="resetGame()">🔄 ریست</button>
+    </div>
+
+    <script>
+        // مقداردهی اولیه
+        const Engine = Matter.Engine,
+              Render = Matter.Render,
+              World = Matter.World,
+              Bodies = Matter.Bodies,
+              Constraint = Matter.Constraint,
+              Mouse = Matter.Mouse,
+              MouseConstraint = Matter.MouseConstraint;
+
+        let engine = Engine.create();
+        let world = engine.world;
+        let nodes = [];
+        let beams = [];
+        let truck = null;
+        let isTesting = false;
+
+        // تنظیمات صحنه
+        let canvas = document.getElementById("gameCanvas");
+        let render = Render.create({
+            canvas: canvas,
+            engine: engine,
+            options: {
+                width: 800,
+                height: 400,
+                wireframes: false,
+                background: "#87ceeb"
+            }
+        });
+
+        // زمین
+        let ground = Bodies.rectangle(400, 390, 800, 20, { isStatic: true, render: { fillStyle: "#2e2e2e" } });
+        World.add(world, ground);
+
+        // موس برای ساخت گره‌ها
+        let mouse = Mouse.create(render.canvas);
+        let mouseConstraint = MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: { stiffness: 0.2, render: { visible: false } }
+        });
+        World.add(world, mouseConstraint);
+
+        // ساخت گره‌ها و تیرها
+        canvas.addEventListener("click", function(event) {
+            if (isTesting) return;
+
+            let x = event.offsetX;
+            let y = event.offsetY;
+            let node = Bodies.circle(x, y, 8, { isStatic: true, render: { fillStyle: "red" } });
+            nodes.push(node);
+            World.add(world, node);
+
+            if (nodes.length > 1) {
+                let beam = Constraint.create({
+                    bodyA: nodes[nodes.length - 2],
+                    bodyB: node,
+                    stiffness: 0.9,
+                    render: { strokeStyle: "white" }
+                });
+                beams.push(beam);
+                World.add(world, beam);
+            }
+        });
+
+        // اجرای بازی
+        Engine.run(engine);
+        Render.run(render);
+
+        // شروع تست
+        function startTest() {
+            if (isTesting) return;
+            isTesting = true;
+
+            truck = Bodies.rectangle(50, 300, 40, 20, { friction: 0.1, render: { fillStyle: "blue" } });
+            World.add(world, truck);
+
+            Matter.Body.setVelocity(truck, { x: 2, y: 0 });
+        }
+
+        // ریست بازی
+        function resetGame() {
+            isTesting = false;
+            World.clear(world, false);
+            World.add(world, [ground, mouseConstraint]);
+            nodes = [];
+            beams = [];
+            truck = null;
+        }
+
+    </script>
+
+</body>
+</html>
